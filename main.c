@@ -4,6 +4,7 @@
 #define INPUT_FILE "be.txt"
 #define OUTPUT_FILE "ki.txt"
 #define READ_TIER_PATTERN "%c %f %d %f %d %f[^\n]"
+#define NUMBER_OF_TIER_TYPES 3
 
 typedef struct TierChange
 {
@@ -37,6 +38,8 @@ int ReadDataFromFile(RaceData *raceData);
 float ProcessRaceData(RaceData *raceData, int isDebugMode);
 void PrintRaceData(RaceData *raceData);
 int CheckArgument(char *expArg, char *currArg);
+int ValidateStrategy(RaceData *RaceData);
+void WriteErrorToFile();
 
 int main(int argc, char *argv[])
 {
@@ -57,9 +60,12 @@ int main(int argc, char *argv[])
         PrintRaceData(&raceData);
     }
 
-    //todo: validálni a stratégiát, hogy megfelelő e 
-    // A stratégiai hibák (kevesebb, mint két keverék használata; és kevesebb, mint egy kiállás) esetén a
-    // kimenetbe csak a ”HIBA” szöveg kerüljön.
+    //Ellenőrizzük a beolvasott adatokat
+    if(ValidateStrategy(&raceData) != 0)
+    {
+        WriteErrorToFile();
+        return 1;
+    }
 
     //Adatok feldolgozása
     float sumTime = ProcessRaceData(&raceData, isDebugMode);
@@ -125,7 +131,7 @@ int ReadDataFromFile(RaceData *raceData)
 
     while(!feof(filePtr) && indexOfLines < 6)
     {
-        if(indexOfLines < 3)
+        if(indexOfLines < NUMBER_OF_TIER_TYPES)
         {
             int numberOfElements = fscanf(filePtr, READ_TIER_PATTERN, &detail.TypeName, &detail.Time, &detail.BeginningOfErosion, &detail.ExtentOfErosion, &detail.BeginningOfDamge, &detail.ExtentOfDamage);
 
@@ -228,7 +234,7 @@ float ProcessRaceData(RaceData *raceData, int isDebugMode)
 
 void PrintRaceData(RaceData *raceData)
 {
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < NUMBER_OF_TIER_TYPES; ++i)
     {
         printf("%c %0.3f %d %0.3f %d %0.3f\n", raceData->DetailsOfTire[i].TypeName, raceData->DetailsOfTire[i].Time, raceData->DetailsOfTire[i].BeginningOfErosion, raceData->DetailsOfTire[i].ExtentOfErosion, raceData->DetailsOfTire[i].BeginningOfDamge, raceData->DetailsOfTire[i].ExtentOfDamage);
     }
@@ -252,4 +258,51 @@ int CheckArgument(char *expArg, char *currArg)
 	}
 
 	return *expArg == *currArg;
+}
+
+int ValidateStrategy(RaceData *raceData)
+{
+    int result = 0, count = 0;
+
+    if(raceData->NumberOfChanges < 1)
+    {
+        result = 1;
+    }
+
+    for(int i = 0; i < NUMBER_OF_TIER_TYPES; ++i)
+    {
+        int index = 0, found = 1;
+
+        while (index < raceData->NumberOfChanges && found != 0)
+        {   
+            if(raceData->DetailsOfTire[i].TypeName == raceData->Strategy[index].Tier)
+            {
+                found = 0;
+                ++count;
+            }
+
+            ++index;
+        }
+    }
+
+    if(count < 2)
+    {
+        result = 1;
+    }
+
+    return result;
+}
+
+void WriteErrorToFile()
+{
+    FILE *filePtr;
+    filePtr = fopen(OUTPUT_FILE, "w");
+
+    if(filePtr == NULL)
+    {
+        printf("Hiba a fájl kiírása közben.\n");
+    }
+
+    fprintf(filePtr, "HIBA");
+    fclose(filePtr);
 }

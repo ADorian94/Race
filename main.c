@@ -55,6 +55,12 @@ int main(int argc, char *argv[])
     RaceData raceData; 
     int result = ReadDataFromFile(&raceData);
 
+    if(result == 1)
+    {
+        printf("HIBA");
+        return 1;
+    }
+
     if(isDebugMode == 0)
     {
         PrintRaceData(&raceData);
@@ -117,6 +123,7 @@ float GetCurrentLapTime(TireDetails *currentTier, int roundWithTier)
 
 int ReadDataFromFile(RaceData *raceData)
 {
+    int reusult = 0;
     FILE *filePtr;
     filePtr = fopen(INPUT_FILE, "r");
 
@@ -129,7 +136,7 @@ int ReadDataFromFile(RaceData *raceData)
     TireDetails detail; 
     int indexOfLines = 0; 
 
-    while(!feof(filePtr) && indexOfLines < 6)
+    while(!feof(filePtr))
     {
         if(indexOfLines < NUMBER_OF_TIER_TYPES)
         {
@@ -175,13 +182,19 @@ int ReadDataFromFile(RaceData *raceData)
         {
             printf("Something went wrong.");
             ++indexOfLines;
+            reusult = 0;
         }
     }
 
     //file bezárása
     fclose(filePtr);
 
-    return 0;
+    if(indexOfLines != 6)
+    {
+        reusult = 1;
+    }
+
+    return reusult;
 }
 
 void WriteResultToFile(float result)
